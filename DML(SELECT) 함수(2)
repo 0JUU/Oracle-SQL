@@ -1,0 +1,182 @@
+/*
+     <숫자와 관련된 함수>
+     ABS
+     -ABS(절대값을 구할 숫자) : 절대값을 구해주는 함수
+     결과값은 NUMBER 타입으로 반환
+*/
+
+SELECT ABS(-10)
+FROM DUAL;
+SELECT ABS(-10.9)
+FROM DUAL;
+
+
+
+/*
+    MOD
+    -MOD(숫자, 나눌 값) : 두 수를 나눈 나머지값을 반환하는 함수
+    결과값 NUMBER
+*/
+
+SELECT MOD(10, 3)
+FROM DUAL;  -- 나머지 1
+SELECT MOD(-10, 3)
+FROM DUAL;  -- 나머지 -1
+SELECT MOD(10.9, 3)
+FROM DUAL;  -- 나머지 1.9
+
+
+
+/*
+    ROUND
+    -ROUND(반올림하려는 수, 반올림할 위치) : 반올림 처리 함수
+    
+    반올림할위치 : 소수점 기준으로 아래 N번째 수에서 반올림하겠다.
+                         생략 가능(위치 생략 시 기본값은 0, 소수점 첫 번째 자리에서 반올림하겠다. - 반올림 결과가 소수점이 0개이다.)
+    결과값은 NUMBER 타입으로 반환
+*/
+
+SELECT ROUND(123, 456)
+FROM DUAL;  -- 123
+
+SELECT ROUND(123.456, 1)
+FROM DUAL;  -- 123.5
+
+SELECT ROUND(123.456, 2)
+FROM DUAL;  -- 123.46
+
+SELECT ROUND(123.456, -2)
+FROM DUAL;  -- 100
+
+
+
+/*
+    CEIL
+    -CEIL(올림처리할 숫자) : 소수점 아래의 수를 무조건 올림하는 함수
+    결과값은 NUMBER 타입으로 반환
+*/
+
+SELECT CEIL(123.456)
+FROM DUAL;
+SELECT CEIL(451.089)
+FROM DUAL;
+
+
+
+/*
+    FLOOR
+    -FLOOR(버림처리하려는 숫자) : 소수점 아래의 수를 무조건 버림처리해주는 함수
+    결과값은 NUMBER 타입으로 반ㄴ환
+*/
+
+SELECT FLOOR(123.456)
+FROM DUAL;
+SELECT FLOOR(-123.455)
+FROM DUAL;
+
+
+
+/*
+    TRUNC
+    -TRUNC(버림처리할숫자, 위치) : 위치가 지정 가능한 버림 처리를 해주는 함수
+    결과값은 NUMBER 타입으로 반환
+    위치 : 생략 가능, 생략 시 기본값을 0 (==FLOOR함수)
+*/
+
+SELECT TRUNC(123.456)
+FROM DUAL;  -- FLOOR 함수와 동일
+
+SELECT TRUNC(123.456, 1)
+FROM DUAL;  -- 123.4
+
+SELECT TRUNC(123.456, 2)
+FROM DUAL;  -- 123.45
+
+SELECT TRUNC(123.456, -1)
+FROM DUAL;  -- 120
+
+
+
+/*
+    <날짜 관련 함수>
+    DATE 타입 : 년도, 월, 일, 시, 분, 초를 모두 포함한 자료형
+    SYSDATE : 현재 시스템 날짜 반환
+*/
+
+SELECT SYSDATE
+FROM DUAL;
+
+
+
+/*
+    MONTHS_BETWEEN(DATE1, DATE2) : 두 날짜 사이의 개월 수를 반환(결과값은 NUMBER 타입으로 반환)
+    -만약 DATE2가 더 미래의 날이라면 음수로 반환된다.
+    
+*/
+
+--각 직원별 근무일수, 근무 개월 수
+SELECT EMP_NAME
+        , FLOOR(SYSDATE-HIRE_DATE) || '일' 근무일수
+        , FLOOR(MONTHS_BETWEEN(SYSDATE, HIRE_DATE)) || '월' "근무 개월 수"
+FROM EMPLOYEE;
+
+
+/*
+   ADD_MONTHS(DATE, NUMBER) : 특정 날짜에 해당 숫자 만큼 개월 수를 더한날짜를 반환한다.
+   결과값은 DATE 타입으로 반환
+*/
+
+--오늘 날짜로부터 5개월 이후
+SELECT ADD_MONTHS(SYSDATE, 5)
+FROM DUAL;
+
+SELECT SYSDATE 오늘, SYSDATE + 100 "100일 후"
+FROM DUAL;
+
+--사원들의 입사 1주년
+SELECT EMP_NAME 이름, HIRE_DATE 입사일, ADD_MONTHS(HIRE_DATE, 12) "입사 1주년"
+FROM EMPLOYEE;
+
+--NEXT_DAY(DATE, 요일(문자/숫자)) : 특정 날짜에서 가장 가까운 해당 요일을 찾아 그 날짜를 반환한다.
+--결과값은 DATE 타입으로 반환
+
+SELECT NEXT_DAY(SYSDATE, '토요일')
+FROM DUAL;
+
+SELECT NEXT_DAY(SYSDATE, '토')
+FROM DUAL;
+
+-- 1: 일, 2: 월, 3: 화, 4: 수, 5: 목, 6: 금, 7: 토
+SELECT NEXT_DAY(SYSDATE, 5)
+FROM DUAL;
+
+--토요일 : SATYRDAY -> 언어가 달라서 오류 남
+SELECT NEXT_DAY(SYSDATE, 'SAT')
+FROM DUAL;
+
+-- 언어 변경
+--DDL(데이터 정의 언어) : CRETE, ALTER, DROP
+--ALTER SESSION SET NLS_LANGUAGE = KOREAN;
+
+--LAST_DAY(DATE) : 해당 특정 날짜 월의 마지막 날짜를 구해서 반환(결과값은 DATE 타입)
+SELECT LAST_DAY(SYSDATE)
+FROM DUAL;
+
+SELECT EMP_NAME, HIRE_DATE, LAST_DAY(HIRE_DATE)
+FROM EMPLOYEE;
+
+--EXTRACT : 년도 또는 월 또는 일 정보를 추출해서 반환한다.
+--EXTRACT(YEAR FROM 날짜) : 특정 날짜로부터 연도만 추출
+--EXTRACT(MONTH FROM 날짜) : 특정 날짜로부터 월만 추출
+--EXTRACT(DAY FROM 날짜) : 특정 날짜로부터 일만 추출
+SELECT EXTRACT(YEAR FROM SYSDATE) 연도
+          , EXTRACT(MONTH FROM SYSDATE) 월
+          , EXTRACT(DAY FROM SYSDATE) 일
+FROM DUAL;
+
+--사원명, 입사년도, 입사월, 입사일 조회
+SELECT EMP_NAME 사원명
+          , EXTRACT(YEAR FROM HIRE_DATE)입사년도, '년'
+          , EXTRACT(MONTH FROM HIRE_DATE)입사월, '월' 
+          , EXTRACT(DAY FROM HIRE_DATE)입사일, '일' 
+FROM EMPLOYEE;
