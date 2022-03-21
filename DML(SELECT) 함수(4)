@@ -1,0 +1,163 @@
+/*
+   DECODE 선택함수 -> Java의 SWITCH문과 유사
+   CASE WHEN THEN END 구문 -> Java에서 IF문과 유사
+                                                                                                              
+   DECODE(비교대상, 조건값1, 결과값1, 조건값2, 결과값2, ...., 조건값n, 결과값n, 결과값)
+    비교대상: 컬럼명, 산술연산(결과는 NUMBER), 함수가 들어갈 수 있다.
+*/
+
+-- 직번, 직원명, 주민등록번호, 성별 자리 추출
+SELECT EMP_ID, EMP_NAME, EMP_NO, DECODE(SUBSTR(EMP_NO, 8, 1), 1, '남자', 2, '여자') "성별"
+FROM EMPLOYEE;
+
+-- 직원들의 급여를 인상시켜서 조회하기
+-- 직급코드가 'J7'인 직원은 급여를 10% 인상해서 조회
+-- 직급코드가 'J6'인 직원은 급여를 15% 인상해서 조회
+-- 직급코드가 'J5'인 직원은 급여를 20% 인상해서 조회
+-- 그외 직급코드를 가진 직원은 급여를 5% 인상해서 조회
+
+SELECT EMP_NAME "직원명", JOB_CODE "직번", SALARY "인상 전 급여"
+         , DECODE(JOB_CODE, 'J7', (SALARY*1.1), 'J6', (SALARY*1.15), 'J5', (SALARY*1.2), (SALARY*1.05)) "인상 후 급여"
+FROM EMPLOYEE;
+
+
+
+/*
+   CASE WHEN THEN 구문
+   
+   - DECODE 선택함수와 비교하면 DECODE는 해당 조건검사 시 동등 비교만을 수행
+   - CASE WHEN THEN 구문의 경우 특정 조건을 마음대로 제시 가능
+   
+   [표현법]
+   CASE WHEN 조건식1 THEN 결과값1
+           WHEN 조건식2 THEN 결과값2
+           ...
+           ELSE 결과값
+   END
+   
+   - 자바에서 IF ~ IF ELSE문과 유사
+*/
+
+-- 직번, 직원명, 주민등록번호, 성별자리 추출
+SELECT EMP_ID "사번", EMP_NAME "사원명", EMP_NO "주민등록번호"
+         , CASE WHEN SUBSTR(EMP_NO, 8, 1) = 1 THEN '남자'
+                   WHEN SUBSTR(EMP_NO, 8, 1) = 3 THEN '남자'
+                   ELSE '여자'
+           END "성별"
+FROM EMPLOYEE;
+         
+-- 직원들의 급여를 인상시켜서 조회하기
+-- 직급코드가 'J7'인 직원은 급여를 10% 인상해서 조회
+-- 직급코드가 'J6'인 직원은 급여를 15% 인상해서 조회
+-- 직급코드가 'J5'인 직원은 급여를 20% 인상해서 조회
+-- 그외 직급코드를 가진 직원은 급여를 5% 인상해서 조회
+SELECT EMP_NAME "직원명", JOB_CODE "직번", SALARY "인상 전 급여"
+        , CASE WHEN JOB_CODE = 'J7' THEN SALARY*1.1
+                  WHEN JOB_CODE = 'J6' THEN SALARY*1.15
+                  WHEN JOB_CODE = 'J5' THEN SALARY*1.2
+                  ELSE SALARY*1.05
+          END "인상 후 급여"
+FROM EMPLOYEE;
+
+-- 직원명, 급여, 급여등급(SAL_LEVEL 사용하지 말고)
+-- 급여등급 SALARY 값이 500만 원 초과일 경우 '고급', 500만 원 이하 350만 원 초과일 경우 '중급', 350만 원 이하일 경우 '초급'
+SELECT EMP_NAME 직원명, SALARY 급여
+         , CASE WHEN SALARY > 5000000 THEN '고급'
+                   WHEN SALARY <= 5000000 AND SALARY > 3500000 THEN '중급'
+                   ELSE '초급'
+           END "급여등급"
+FROM EMPLOYEE;
+
+
+
+
+--------------------------------------------------그룹 함수------------------------------------------------------
+
+-- 그룹 함수: 데이터들의 합(SUM), 평균(AVG)
+
+/*
+   n개의 값들을 읽어서 1개의 결과를 반환한다.(하나의 그룹별로 함수 실행 결과를 반환한다.)
+   
+   1. SUM(숫자 타입 컬럼): 해당 컬럼값들의 총 합계를 반환해주는 함수
+*/
+
+-- SUM() 전체 사원들의 총 급여 합계
+SELECT SUM(SALARY)
+FROM EMPLOYEE;
+
+-- 부서코드가 'D5'인 직원들의 총 급여 합계
+SELECT SUM(SALARY)
+FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5';
+
+-- 남직원들의 총 급여 합계
+SELECT SUM(SALARY)
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NO, 8, 1) = '1';
+
+
+
+--AVG(숫자 타입 컬럼) : 해당 컬럼값들의 평균을 구해서 반환
+--전체 직원들의 평균 급여
+SELECT AVG(SALARY)
+FROM EMPLOYEE;
+
+--소수점 날리기
+SELECT FLOOR(AVG(SALARY))
+FROM EMPLOYEE;
+
+
+
+---MIN(아무 타입) : 해당 컬럼값 중 가장 작은 값을 반환
+--전체 직원들 중 최저급여, 이름, 이메일, 입사일 조회
+SELECT MIN(SALARY), MIN(EMP_NAME), MIN(EMAIL), MIN(HIRE_DATE)
+FROM EMPLOYEE;
+
+
+--MAX(아무 타입) : 해당 컬럼값 중 가장 큰 값을 반환
+SELECT MAX(SALARY), MAX(EMP_NAME), MAX(EMAIL), MAX(HIRE_DATE)
+FROM EMPLOYEE;
+
+
+
+-- COUNT(컬럼명/DISTINCT 컬럼명) : 조회된 행의 개수를 세어 반환
+-- COUNT(*) : 조회 결과에 해당하는 모든 행의 개수를 다 세어 반환
+-- COUNT(컬럼명) : 제시한 해당 컬럼값이 NULL이 아닌 것만 행의 개수로 세어 반환
+-- COUNT(DISTINCT 컬럼명) : 제시한 해당 컬럼값에 중복값이 있을 경우 하나로만 개수를 세어 반환
+
+-- 전체 직원 수에 대해 조회하기
+SELECT COUNT(*)
+FROM EMPLOYEE;  -- 총 23명
+
+-- 여직원 수 조회
+SELECT COUNT(*)
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NO, 8, 1) = 2;
+
+-- 부서배치가 된 사원 수
+SELECT COUNT(*)
+FROM EMPLOYEE
+WHERE DEPT_CODE IS NOT NULL;
+
+-- 부서배치가 된 여직원 수
+SELECT COUNT(*)
+FROM EMPLOYEE
+WHERE SUBSTR(EMP_NO, 8, 1) = 2 AND DEPT_CODE IS NOT NULL;
+
+-- 사수가 있는 사원 수
+SELECT COUNT(*)
+--SELECT COUNT(MANAGER_ID) --하면 WHERE절 안써도됨
+FROM EMPLOYEE
+WHERE MANAGER_ID IS NOT NULL;
+
+--현재 직원들이 속해있는 부서 개수
+SELECT COUNT(DISTINCT DEPT_CODE)
+FROM EMPLOYEE;
+
+-- EMPLOYEE 테이블에서 직원명, 부서코드, 생년월일, 나이 조회
+--단, 생년월일은 주민등록번호에서 추출한 후 00년 00월 00일로 출력하고
+--나이는 주민등록번호에서 출력하여 날짜 데이터로 변환한 후 계산
+SELECT EMP_NAME "직원명", DEPT_CODE "부서코드"
+          , CONCAT(SUBSTR(EMP_NO, 1, 2), '년') || CONCAT(SUBSTR(EMP_NO, 3, 2), '월') || CONCAT(SUBSTR(EMP_NO, 5, 2), '일') "생년월일"
+          , EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM TO_DATE(SUBSTR(EMP_NO, 1, 2), 'RR')) "나이"
+FROM EMPLOYEE;  --RR형식은 50면 미만일 때는 현재 세기, 50년 이상일 땐 이전 세기로 자동 바꿈한다.
