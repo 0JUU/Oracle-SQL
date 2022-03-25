@@ -1,0 +1,86 @@
+/*
+     <SUBQUERY>
+     하나의 주된 SQL(SELECT, CREATE, INSERT, UPDATE, ...) 안에 포함된 또하나의 SELECT문
+     
+     메인 SQL문을 위해 보조 역할을 하는 SELECT문
+*/
+
+-- 전체 사원의 평균 급여보다 더 많은 급여를 받고 있는 사원들의 사번과 이름, 직급코드를 조회하기
+-- 1) 전체 사원의 평균 급여를 조회하기
+SELECT FLOOR(AVG(SALARY))
+FROM EMPLOYEE;
+
+-- 2) 전체 사원의 평균 급여보다 많은 사원들의 사번과 이름, 직급코드를 조회하기
+SELECT EMP_ID, EMP_NAME, JOB_CODE
+FROM EMPLOYEE
+WHERE SALARY > 3047662;
+
+-- 3) 1)과 2)를 합쳐서 조회하기
+SELECT EMP_ID, EMP_NAME, JOB_CODE
+FROM EMPLOYEE
+WHERE SALARY > (SELECT FLOOR(AVG(SALARY)) 
+                FROM EMPLOYEE);
+
+
+
+/*
+      서브쿼리 구문
+      서브쿼리를 수행한 결과값이 몇 행 몇 열이냐에 따라서 분류된다.
+      
+      - 단일행(단일열) 서브쿼리 : 서브쿼리를 수행한 결과값이 오로지 1개일 때(한 칸의 컬럼값으로 나올 때)
+      - 다중행(단일열) 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 행일 때
+      - (단일행)다중열 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 열일 때
+      - 다중행 다중열 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 행 여러 열일 때
+      
+      -> 서브쿼리를 수행한 결과값이 몇 행 몇 열이냐에 따라서 연산자가 달라진다.
+*/
+
+
+/*
+      1. 단일행(단일열) 서브쿼리 (SINGLE ROW SUBQUERY)
+      서브쿼리의 조회 결과값이 1개일 때 일반 연산자 사용 가능 (=, !=, >, <, >=, <=, ...)
+*/
+
+-- 전 직원의 평균 급여보다 적게 받는 사원들의 사원명과 직급코드, 급여를 조회하기
+-- 1) 사원들의 평균 급여를 조회하기
+SELECT FLOOR(AVG(SALARY))
+FROM EMPLOYEE;  -- 평균 급여
+
+-- 2) 전 직원의 평균 급여보다 적게 받는 사원들의 이름과 직급코드, 급여를 조회하기
+SELECT EMP_NAME, JOB_CODE, SALARY
+FROM EMPLOYEE
+WHERE SALARY < 3047662;  -- 평균 급여보다 적게 받는 사원들
+
+-- 3) 1)과 2)를 합쳐서 조회하기
+SELECT EMP_NAME, JOB_CODE, SALARY
+FROM EMPLOYEE
+WHERE SALARY < (SELECT FLOOR(AVG(SALARY)) 
+                FROM EMPLOYEE);  --결과값은 1행 1열 오직 1개의 값
+       
+       
+-- 최저 급여를 받는 사원의 사번, 사원명, 직급코드, 급여, 입사일을 조회하기
+-- 1) 최저 급여를 조회하기
+SELECT MIN(SALARY)
+FROM EMPLOYEE;  -- 1380000
+
+-- 2) 최저 급여를 받는 사원들의 사번과 이름, 직급코드, 급여, 입사일을 조회하기
+SELECT EMP_ID, EMP_NAME, JOB_CODE, SALARY, HIRE_DATE
+FROM EMPLOYEE
+WHERE SALARY = 1380000;
+
+-- 1)과 2)를 합쳐서 조회하기
+SELECT EMP_ID, EMP_NAME, JOB_CODE, SALARY, HIRE_DATE
+FROM EMPLOYEE
+WHERE SALARY = (SELECT MIN(SALARY) 
+                FROM EMPLOYEE);
+                
+
+-- 부서별 급여 합이 가장 큰 부서의 부서코드와 부서명, 급여의 합을 조회하기
+-- 
+SELECT DEPT_CODE, DEPT_TITLE, SUM(SALARY)
+FROM EMPLOYEE E, DEPARTMENT D
+WHERE E.DEPT_CODE = D.DEPT_ID
+GROUP BY DEPT_CODE, DEPT_TITLE
+HAVING SUM(SALARY) = (SELECT MAX(SUM(SALARY))
+                      FROM EMPLOYEE
+                      GROUP BY DEPT_CODE);
