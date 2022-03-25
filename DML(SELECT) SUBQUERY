@@ -24,15 +24,15 @@ WHERE SALARY > (SELECT FLOOR(AVG(SALARY))
 
 
 /*
-      서브쿼리 구문
-      서브쿼리를 수행한 결과값이 몇 행 몇 열이냐에 따라서 분류된다.
+     서브쿼리 구문
+     서브쿼리를 수행한 결과값이 몇 행 몇 열이냐에 따라서 분류된다.
       
-      - 단일행(단일열) 서브쿼리 : 서브쿼리를 수행한 결과값이 오로지 1개일 때(한 칸의 컬럼값으로 나올 때)
-      - 다중행(단일열) 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 행일 때
-      - (단일행)다중열 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 열일 때
-      - 다중행 다중열 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 행 여러 열일 때
+     - 단일행(단일열) 서브쿼리 : 서브쿼리를 수행한 결과값이 오로지 1개일 때(한 칸의 컬럼값으로 나올 때)
+     - 다중행(단일열) 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 행일 때
+     - (단일행)다중열 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 열일 때
+     - 다중행 다중열 서브쿼리 : 서브쿼리를 수행한 결과값이 여러 행 여러 열일 때
       
-      -> 서브쿼리를 수행한 결과값이 몇 행 몇 열이냐에 따라서 연산자가 달라진다.
+     -> 서브쿼리를 수행한 결과값이 몇 행 몇 열이냐에 따라서 연산자가 달라진다.
 */
 
 
@@ -76,7 +76,6 @@ WHERE SALARY = (SELECT MIN(SALARY)
                 
 
 -- 부서별 급여 합이 가장 큰 부서의 부서코드와 부서명, 급여의 합을 조회하기
--- 
 SELECT DEPT_CODE, DEPT_TITLE, SUM(SALARY)
 FROM EMPLOYEE E, DEPARTMENT D
 WHERE E.DEPT_CODE = D.DEPT_ID
@@ -84,3 +83,134 @@ GROUP BY DEPT_CODE, DEPT_TITLE
 HAVING SUM(SALARY) = (SELECT MAX(SUM(SALARY))
                       FROM EMPLOYEE
                       GROUP BY DEPT_CODE);
+                      
+
+
+/*
+       2. 다중행 서브쿼리 (MULTI ROW SUBQUERY)
+       서브쿼리의 조회 결과값이 여러 행일 경우
+        
+       - IN (10, 20, 30) 서브쿼리 : 여러 개의 결과값 중에서도 하나라도 일치하는 것이 있다면 / NOT IN = 없다면
+       - > ANY (10, 20, 30) 서브쿼리 : 여러 개의 결과값 중에 하나라도 클 경우
+       - < ANY (10, 20, 30) 서브쿼리 : 여러 개의 결과값 중에 하나라도 작을 경우
+        
+       - > ALL : 여러 개의 결과값의 모든 값보다 클 경우(결과값 중 가장 큰 값보다 클 경우)
+       - < ALL : 여러 개의 결과값의 모든 값보다 작을 경우(결과값 중 가장 작은 값보다 작을 경우)
+*/
+
+-- 각 부서별 최고 급여를 받는 사원의 이름, 직급코드, 급여를 조회하기
+-- 1) 각 부서별 최고 급여를 조회하기 (여러 행, 단일 열)
+SELECT MAX(SALARY)
+FROM EMPLOYEE
+GROUP BY DEPT_CODE;  -- 2890000, 3660000, 8000000, 3960000, 3900000, 2490000, 2550000
+
+-- 2) 위에서 조회한 급여들을 받는 사원들을 조회하기
+SELECT EMP_NAME, JOB_CODE, SALARY
+FROM EMPLOYEE
+WHERE SALARY IN(2890000, 3660000, 8000000, 3960000, 3900000, 2490000, 2550000);
+
+-- 3) 합치기
+SELECT EMP_NAME, JOB_CODE, SALARY
+FROM EMPLOYEE
+WHERE SALARY IN (SELECT MAX(SALARY)
+                 FROM EMPLOYEE
+                 GROUP BY DEPT_CODE);
+                 
+                 
+
+
+/*
+       3. (단일행)다중열 서브쿼리
+       서브쿼리 조회 결과가 값은 한 행이지만 나열된 컬럼의 개수가 여러 개일 경우
+*/
+
+-- 최충분 사원과 같은 부서코드, 같은 직급코드에 해당하는 사원들 조회하기 (사원명, 부서코드, 직급코드, 입사일)
+-- 1) 최충분의 부서코드, 직급코드 조회
+SELECT DEPT_CODE, JOB_CODE
+FROM EMPLOYEE
+WHERE EMP_NAME = '최충분';
+
+-- 2) 부서코드가 D5이며 직급코드가 J5인 사원 조회
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE, HIRE_DATE
+FROM EMPLOYEE
+WHERE DEPT_CODE = 'D5' AND JOB_CODE = 'J5';
+
+-- 합치기
+SELECT EMP_NAME, DEPT_CODE, JOB_CODE, HIRE_DATE
+FROM EMPLOYEE
+WHERE (DEPT_CODE, JOB_CODE) = (SELECT DEPT_CODE, JOB_CODE
+                               FROM EMPLOYEE
+                               WHERE EMP_NAME = '최충분');
+                               
+                               
+                               
+
+/*
+       4. 다중행 다중열 서브쿼리
+       서브쿼리 조회 결과가 여러 행 여러 컬럼일 경우
+*/
+
+-- 각 직급별 최소 급여를 받는 사원들 조회하기 ( 사번, 이름, 직급코드, 급여 )
+-- 1) 각 직급별 최소 급여 조회
+SELECT MIN(SALARY)
+FROM EMPLOYEE
+GROUP BY JOB_CODE;
+
+-- 2) 위에서 구한 목록들에 해당하는 사원 조회하기
+SELECT EMP_ID, EMP_NAME JOB_CODE, SALARY
+FROM EMPLOYEE
+WHERE (JOB_CODE, SALARY) = ('J2', 3700000)
+OR (JOB_CODE, SALARY) = ('J7', 1380000)
+OR (JOB_CODE, SALARY) = ('J3', 3400000)
+...;
+
+-- 위에 단계들을 하나의 쿼리문으로 합치기
+SELECT EMP_ID, EMP_NAME, JOB_CODE, SALARY
+FROM EMPLOYEE
+WHERE (JOB_CODE, SALARY) IN (SELECT JOB_CODE, MIN(SALARY)
+                             FROM EMPLOYEE
+                             GROUP BY JOB_CODE);
+                             
+                             
+                             
+                             
+/*
+      5. 인라인뷰(INLINE VIEW)
+      FROM절에 서브쿼리를 제시하는 것
+      서브쿼리를 수행한 결과(RESULT SET)을 테이블 대신 사용하겠다.
+*/
+
+-- 보너스 포함 연봉이 3000만 원 이상인 사원들의 사번, 이름, 보너스 포함 연봉, 부서코드를 조회하기
+SELECT EMP_ID, EMP_NAME, ((SALARY + (SALARY * NVL(BONUS, 0))) * 12) 연봉, DEPT_CODE
+FROM EMPLOYEE
+WHERE ((SALARY + (SALARY * NVL(BONUS, 0))) * 12) >= 30000000;
+
+-- 인라인 뷰를 사용 : 사원명만 골라내기(보너스 포함 연봉이 3000만 원 이상인 사원들의 이름만)
+SELECT EMP_NAME
+FROM (SELECT EMP_ID, EMP_NAME, ((SALARY + (SALARY * NVL(BONUS, 0))) * 12) 연봉, DEPT_CODE
+      FROM EMPLOYEE
+      WHERE ((SALARY + (SALARY * NVL(BONUS, 0))) * 12) >= 30000000)  -- 보너스 포함 연봉이 3000만 원 이상인 사원들의 이름
+WHERE DEPT_CODE IS NOT NULL;
+
+
+-- 인라인 뷰를 주로 사용하는 예
+-- TOP-N 분석 : 데이터베이스 상에 있는 자료 중 최상위 N개의 자료를 보기 위해 사용하는 기능
+
+-- 전 직원 중 급여가 가장 높은 상위 5명(순위, 사원명, 급여)
+-- ROWNUM : 오라클에서 제공해주는 컬럼으로 조회된 순서대로 1부터 순번을 부여해주는 컬럼이다.
+SELECT ROWNUM, EMP_NAME, SALARY
+FROM EMPLOYEE
+WHERE ROWNUM <= 5
+ORDER BY SALARY DESC;
+
+SELECT *
+FROM EMPLOYEE
+ORDER BY SALARY DESC;
+
+-- 해결 : 미리 ODER BY로 정렬된 테이블로 조회하기
+SELECT ROWNUM, EMP_NAME, SALARY
+FROM (SELECT *
+      FROM EMPLOYEE
+      ORDER BY SALARY DESC)
+WHERE ROWNUM <= 5;
+
