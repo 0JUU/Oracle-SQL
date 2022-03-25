@@ -214,3 +214,36 @@ FROM (SELECT *
       ORDER BY SALARY DESC)
 WHERE ROWNUM <= 5;
 
+
+
+
+/*
+      6. 순위 매기는 함수 (WINDOW FUNCTION)
+      
+      RANK() OVER(정렬 기준)
+      DENSE_RANK() OVER(정렬 기준)
+      -RANK() OVER : 공동 1위가 3명이라고 하면 그 다음순위는 4위로 한다.
+      -DENSE_RANK() OVER : 공동 1위가 3명이어도 그 다음순위는 2위로 한다.
+      
+      정렬 기준 : ORDER BY절(정렬기준컬럼이름 오름차순/내림차순)
+      SELECT절에서만 사용가능
+*/
+
+-- 사원들의 급여가 높은 순서대로 매겨서 사원명, 급여, 순위 조회하기 : RANK() OVER()
+SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) 순위
+FROM EMPLOYEE;  -- 공동 순위 인원 만큼 다음 순위가 밀린다. (공동순위 19위 2명, 그 다음 순위는 21위)
+
+-- 사원들의 급여가 높은 순서대로 매겨서 사원명, 급여, 순위 조회하기 : DENSE_RANK() OVER()
+SELECT EMP_NAME, SALARY, DENSE_RANK() OVER(ORDER BY SALARY DESC)순위
+FROM EMPLOYEE;  -- 공동 순위 인원 만큼 다음 순위가 밀리지 않는다. (공동순위 19위 2명, 그 다음 순위는 20위)
+
+-- 5위까지만 조회하기
+SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) 순위
+FROM EMPLOYEE
+WHERE RANK() OVER(ORDER BY SALARY DESC) <= 5;  -- 에러. RANK 함수는 WHERE절에서 사용 불가
+
+-- 인라인 뷰를 사용하여 5위까지 조회하면 된다.
+SELECT *
+FROM (SELECT EMP_NAME, SALARY, RANK() OVER(ORDER BY SALARY DESC) 순위
+      FROM EMPLOYEE)
+WHERE 순위 <= 5;
