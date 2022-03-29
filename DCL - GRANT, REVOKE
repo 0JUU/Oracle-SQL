@@ -1,0 +1,124 @@
+/*
+      DCL(DATA CONTROL LANGUAGE)
+      데이터 제어 언어
+      계정에게 시스템 권한 또는 객체 접근 권한을 부여(GRANT)하거나 회수(REVOKE)하는 언어
+      
+      -권한 부여 (GRANT)
+      시스템 권한: 특정 DB에 접근하는 권한, 객체들을 생성할 수 있는 권한
+      객체 접근 권한: 특정 객체들에 접근해서 조작할 수 있는 권한
+      
+      -시스템 권한
+      [표현법]
+      GRANT 권한1, 권한2, ... TO 계정명;
+      
+      -시스템 권한의 종류
+      CREATE SESSION: 계정에 접속할 수 있는 권한
+      CREATE TABLE: 테이블을 생성할 수 있는 권한
+      CREATE VIEW: 뷰를 생성할 수 있는 권한
+      CREATE SEQUENCE: 시퀀스를 생성할 수 있는 권한
+      CREATE USER: 계정을 생성할 수 있는 권한
+      ...
+*/
+
+-- 1. SAMPLE 계정 생성
+CREATE USER SAMPLE IDENTIFIED BY SAMPLE;
+
+-- 2. SAMPLE 계정에 접속하기 위해 CREATE SESSION 권한 부여하기
+GRANT CREATE SESSION TO SAMPLE;
+
+
+-- 3. SAMPLE 계정에 테이블을 생성하기 위해 CREATE TABLE 권한 부여하기
+GRANT CREATE TABLE TO SAMPLE;
+
+-- 3-1. 테이블 생성하기
+-- CREATE TABLE 권한을 받기 전엔 오류
+CREATE TABLE TEST(
+    TEST_ID NUMBER
+);
+-- CREATE TABLE 권한 부여받아도 TABLE SPACE를 할당받지 않으면 오류
+
+SELECT * FROM TEST;
+-- 위의 테이블 생성 권한을 부여받으면
+-- 계정이 소유하고 있는 테이블들을 조작하는 것도 가능하다. (DML)
+INSERT INTO TEST VALUES(10);
+
+
+-- 3-2. SAMPLE 계정에 테이블 스페이스를 할당하기
+ALTER USER SAMPLE QUOTA 2M ON SYSTEM;
+-- QUOTA: 몫 -> 할당하다, 나눠주다
+-- 2M: 2MEGEBYTE
+-- 테이블 스페이스 공간 제한을 두지 않으려면 QUOTA UNLIMITED ON 유지명
+
+-- 4. SAMPLE 계정에 VIEW를 생성할 수 있는 권한을 부여하기
+GRANT CREATE VIEW TO SAMPLE;
+
+-- 4-1. 뷰 만들어보기
+CREATE VIEW V_TEST
+AS SELECT * FROM TEST;
+-- 오류(insufficient privileges) 발생
+-- CREATE VIEW 권한이 없어서 오류 발생
+
+SELECT * FROM V_TEST;   -- CREATE VIEW 권한을 부여받은 후 생성 완료
+
+/*
+      객체 권한
+      특정 객체들을 조작할 수 있는 권한
+      조작 : SELECT, INSERT, UPDATE, DELETE = DML
+      
+      [표현법]
+      GRANT 권한 ON 특정 객체 TO 계정명;
+      
+      ========================
+      권한 종류    |          특정 객체
+      --------------------------------------------
+      SELECT       | TABLE, VIEW, SEQUENCE
+      INSERT       | TABLE, VIEW
+      UPDATE     | TABLE, VIEW
+      DELETE      | TABLE, VIEW
+      ========================
+*/
+
+-- 5. SAMPLE 계정에 KH.EMPLOYEE 테이블을 조회할 수 있는 권한 부여하기
+GRANT SELECT ON KH.EMPLOYEE TO SAMPLE;
+
+SELECT * FROM KH.EMPLOYEE;
+-- TABLE OR VIEW  DOES NOT EXIST 오류. 
+-- KH 계정의 테이블에 접근 권한이 없어서 오류 발생. 권한 부여받기.
+
+--SELECT 권한 부여받은 후
+SELECT * FROM KH.EMPLOYEE;
+
+-- 6. SAMPLE 계정에서 KH 계정에 있는 테이블에 접근하여 행 삽입하기
+INSERT INTO KH.DEPARTMENT VALUES('D0', '회계부', 'L2');
+-- table or view does not exist 오류 발생
+-- KH 계정의 테이블에 접근해서 행을 삽입할 수 있는 권한이 없어서 오류 발생
+
+-- INSERT 권한 부여받은 후 행 삽입하기
+INSERT INTO KH.DEPARTMENT VALUES('D0', '회계부', 'L2');
+
+-- 6-1. SAMPLE 계정에 KH.DEPARTMENT 테이블에 행을 삽입할 수 있는 권한 부여하기
+GRANT INSERT ON KH.DEPARTMENT TO SAMPLE;
+
+-- 최소한의 권한만 부여받고 싶다면 CONNECT, RESOURCE만 부여하면 된다.
+-- GRANT CONNECT, RESOURCE TO 계정명;
+
+/*
+      <ROLE>
+      특정 권한들을 하나의 집합으로 모아놓은 것
+      
+      CONNECT : CREATE SESSION (데이터베이스 접속 권한)
+      RESOURCE : CREATE TABLE, CREATE SEQUENCE, SELECT, INSERT, ...(특정 객체들을 생성 밒 조작할 수 있는 권한)
+*/
+
+-----------------------------------------------------------------------------------------------------------------
+
+/* 
+      권한 회수하기(REVOKE)
+      권한을 회수할 때 사용하는 명령어
+      
+      [표현법]
+      REVOKE 권한1, 권한2, ... FROM 계정명;
+*/
+
+-- 7. SAMPLE 계정에 테이블을 생성하는 권한을 회수하기
+REVOKE CREATE TABLE FROM SAMPLE;
