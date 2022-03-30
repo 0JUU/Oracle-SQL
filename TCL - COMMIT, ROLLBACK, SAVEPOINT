@@ -1,0 +1,113 @@
+/*
+      TCL(TRANSACTION CONTROL LANGUAGE)
+      트랜잭션을 제어하는 언어
+      
+      *트랜잭션(TRANSACTION)
+      - 데이터베이스의 논리적 작업 단위
+      - 데이터의 변경사항(DML) 등을 하나의 트랜잭션으로 묶어서 처리
+      -> COMMIT(확정)하기 전까지의 변경사항들을 하나의 트랜잭션으로 담는다.
+      - 트랜잭션의 대상이 되는 SQL : INSERT, UPDATE, DELETE (DML)
+      
+      *트랜잭션의 종류
+      - COMMIT; : 진행(CTRL + ENTER), 하나의 트랜잭션에 담겨있는 변경사항들을 실제 DB에 반영한다.
+                        실제 DB에 반영시킨 후 트랜잭션은 비워진다.(확정)
+      - ROLLBACK; : 진행(CTRL + ENTER), 하나의 트랜잭션에 담겨있는 변경사항들을 실제 DB에 반영하지 않는다.
+                          트랜잭션에 담겨있는 변경사항도 다 삭제한 후 마지막 COMMIT 시점으로 돌아간다.
+      - SAVEPOINT 포인트명; : 진행(CTRL + ENTER), 현재 이 시점에 임시저장점을 정의한다.
+      - ROLLBACK TO 포인트명; : 진행(CTRL + ENTER), 전체 변경사항들을 삭제(마지막 COMMIT 시점까지 돌려놓기)하는 것이 아니라
+                                            해당 포인트 지점까지의 트랜잭션을 롤백한다.
+*/
+
+SELECT * FROM EMP_NEW;  -- 16명
+
+-- 사번이 777인 김칠칠 지우기
+DELETE FROM EMP_NEW
+WHERE EMP_ID = 777;
+
+-- 이름이 남사려인 사원 지우기
+DELETE FROM EMP_NEW
+WHERE EMP_NAME = '남사려';
+
+ROLLBACK;
+
+----------------------------------------
+-- 사번이 777인 사원 지우기
+DELETE FROM EMP_NEW
+WHERE EMP_ID = 777;
+-- 이름이 남사려인 사원 지우기
+DELETE FROM EMP_NEW
+WHERE EMP_NAME = '남사려';
+-- 사번 888 이름 김팔팔 사원 주가하기
+INSERT INTO EMP_NEW VALUES(888, '김팔팔', SYSDATE, 2500000);
+
+SELECT * FROM EMP_NEW;  -- 15명
+COMMIT;  
+ROLLBACK;  -- 사번 777과 남사려 사원 지워지고, 김팔팔 사원 추가된 후 커밋하여 되돌릴 수 없다.
+
+---------------------------------------------------------------------------------------------------
+
+-- EMP_NEW 테이블에서 사번이 217, 221, 209인 사원을 삭제하기
+DELETE FROM EMP_NEW 
+WHERE EMP_ID IN(217, 221, 209);
+
+SELECT * FROM EMP_NEW; -- 12명
+
+-- 3개의 행이 삭제된시점에서 SAVEPOINT 지정하기
+SAVEPOINT SP1;
+
+-- EMP_NEW 테이블에 사번 789, 이름 김순서
+INSERT INTO EMP_NEW
+VALUES(789, '김순서', SYSDATE, 1900000);
+
+SELECT * FROM EMP_NEW;  -- 13명
+
+-- 사번 218 삭제하기
+DELETE FROM EMP_NEW
+WHERE EMP_ID = 218;
+
+SELECT * FROM EMP_NEW;  -- 12명
+
+ROLLBACK TO SP1;
+
+SELECT * FROM EMP_NEW;  -- 12명
+-- 김순서 사원과 사번 218 원위치
+
+ROLLBACK;  -- 15명
+-- SAVEPOINT로 돌아가지 않고 COMMIT으로 돌아간다.
+
+COMMIT;
+
+SELECT * FROM EMP_NEW;  -- 15명 확정
+
+-- 사번 216, 214 삭제하기
+DELETE FROM EMP_NEW
+WHERE EMP_ID IN(216, 214);  -- 13명
+
+-- 테이블 생성하기
+CREATE TABLE TEST(
+    TEST_ID NUMBER
+);
+
+SELECT * FROM EMP_NEW;  -- 13명
+
+ROLLBACK;  -- 13명
+
+/*
+      주의사항
+      DDL 구문(CREATE, ALTER, DROP)을 실행하는 순간
+      기존 트랜잭션에 있던 모든 변경사항들을 무조건 실제 DB에 반영한다.(COMMIT을 시킨 후 DDL 진행)
+      DDL 수행 전 변경사항이 있었다면 정확히 COMMIT 또는 ROLLBACK을 진행한 후 DDL을 실행해야 한다.
+*/
+
+SAVEPOINT SP2;
+
+DELETE FROM EMP_NEW
+WHERE EMP_ID = 220;
+
+ROLLBACK TO SP2;
+
+SELECT * FROM EMP_NEW;
+
+INSERT INTO EMP_NEW VALUES(555, '김오오', SYSDATE, 1123400);
+
+ROLLBACK TO SP2;
