@@ -1,0 +1,110 @@
+/*
+      <시퀀스 SEQUENCE>
+      자동으로 번호를 발생시켜주는 역할을 하는 객체
+      정수값을 자동으로 순차적으로 발생시켜줌(연속된 숫자)
+      
+      EX) 회원번호, 사원번호, 게시글번호
+      -> 순차적으로 겹치지 않는 숫자로 정의할 때 사용
+      
+      1. 시퀀스 객체 생성 구문
+      [표현법]
+      CREATE SEQUENCE 시퀀스명
+      START WITH 시작숫자  -> 생략 가능, 처음 발생시킬 시작값 설정
+      INCREMENT BY 증가값  -> 생략 가능, 한 번 시퀀스를 증가할 때마다 몇 씩 증가할 건지 설정
+      MAXVALUE 최대값  -> 생략 가능, 최대값 지정
+      MINVALUE 최소값  -> 생략 가능, 최소값 지정
+      CYCLE/NOCYCLE  -> 생략 가능, 값의 순환 여부를 결정
+      CACHE 바이트크기/NOCACHE  -> 생략 가능, 캐시메모리 여부 지정(기본 SIZE = 20BYTE)
+      
+      * 캐시 메모리란?
+      시퀀스로부터 미리 발생될 값들을 생성해서 저장해두는 공간
+      매번 호출할 때마다 새로이 번호를 생성하는 것보단 캐시메모리 공간에 미리 생성된 값들을 가져다 쓰게되면 속도가 빠르다.
+      단, 접속이 끊기고 나서 재접속 후 기존에 생성되어 있던 값들은 사라진다.
+*/
+
+CREATE SEQUENCE SEQ_TEST;
+
+-- 현재 접속한 계정이 소유하고 있는 시퀀스에 대한 정보를 조회하고자 한다면
+SELECT * FROM USER_SEQUENCES;
+
+CREATE SEQUENCE SEQ_EMPNO
+START WITH 300
+INCREMENT BY 5
+MAXVALUE 310
+NOCYCLE
+NOCACHE;
+
+/*
+      시퀀스 사용 구문
+      
+      시퀀스명.CURRVAL : 현재 시퀀스의 값(마지막으로 성공적으로 발생된 NEXTVAL값)
+      시퀀스명.NEXTVAL : 현재 시퀀스의 값을 증가시키고 그 증가된 시퀀스의 값 == CURRVAL + INCREMENT BY
+      단, 시퀀스 생성 후 첫 NEXTVAL은 START WITH로 지정된 시작값으로 발생
+      첫 시퀀스명.CURRVAL은 수행 불가
+*/
+
+SELECT SEQ_EMPNO.CURRVAL FROM DUAL;
+-- sequence SEQ_EMPNO.CURRVAL is not yet defined in this session
+-- 시퀀스가 생성되고 나서 NEXTVAL을 한 번이라도 수행하지 않는 이상 CURRVAL을 수행할 수 없다.
+--> CURRVAL은 마지막에 정상적으로 수행된 NEXTVAL의 값을 저장해서 보여주는 임시값이기 때문이다.
+
+SELECT SEQ_EMPNO.NEXTVAL FROM DUAL;  -- 300
+SELECT SEQ_EMPNO.CURRVAL FROM DUAL;  -- 300
+
+SELECT SEQ_EMPNO.NEXTVAL FROM DUAL;  -- 305
+
+SELECT * FROM USER_SEQUENCES;  -- LAST NUMBER == 310
+
+SELECT SEQ_EMPNO.NEXTVAL FROM DUAL;  -- LAST NUMBER : 현재 상황에서 앞으로 NEXTVAL을 한 번 수행할 경우 예정값
+
+SELECT SEQ_EMPNO.NEXTVAL FROM DUAL;  -- sequence SEQ_EMPNO.NEXTVAL exceeds MAXVALUE and cannot be instantiated
+-- 지정한 MAXVALUE를 초과하여 오류 발생.
+
+SELECT SEQ_EMPNO.CURRVAL FROM DUAL;  -- 310
+
+/*
+      ALTER SEQUENCE 시퀀스명
+      INCREMENT BY 증가값  -> 생략 가능, 한 번 시퀀스를 증가할 때마다 몇 씩 증가할 건지 설정
+      MAXVALUE 최대값  -> 생략 가능, 최대값 지정
+      MINVALUE 최소값  -> 생략 가능, 최소값 지정
+      CYCLE/NOCYCLE  -> 생략 가능, 값의 순환 여부를 결정
+      CACHE 바이트크기/NOCACHE  -> 생략 가능, 캐시메모리 여부 지정(기본 SIZE = 20BYTE)
+      
+      -> START WITH는 변경이 불가능하다
+      -> 바꾸고 싶으면 삭제했다가 다시 생성해야 한다.
+*/
+
+ALTER SEQUENCE SEQ_EMPNO
+INCREMENT BY 10
+MAXVALUE 400;
+
+SELECT SEQ_EMPNO.CURRVAL FROM DUAL;  -- 310 중간에 시퀀스가 변경되더라도 CURRNAL값은 그대로다.
+SELECT SEQ_EMPNO.NEXTVAL FROM DUAL;  -- 320
+
+-- SEQUENCE 삭제하기
+DROP SEQUENCE SEQ_EMPNO;
+
+
+
+SELECT * FROM EMPLOYEE;
+
+-- 매번 새로운 사번이 생성되는 시퀀스 생성(시퀀스명 : SEQ_EID)
+-- 223 시작, 증가1, 최대값 300
+CREATE SEQUENCE SEQ_EID
+START WITH 223
+INCREMENT BY 1
+MAXVALUE 300
+NOCYCLE;
+
+-- 만든 시퀀스로 EMP_ID에 넣어서 행을 2개 추가하기
+INSERT INTO EMPLOYEE(EMP_ID, EMP_NAME, EMP_NO, JOB_CODE, SAL_LEVEL) VALUES(SEQ_EID.NEXTVAL, '김말순', '990123-212345', 'J5', 'S4');
+INSERT INTO EMPLOYEE(EMP_ID, EMP_NAME, EMP_NO, JOB_CODE, SAL_LEVEL) VALUES(SEQ_EID.NEXTVAL, '백설기', '000123-312345', 'J6', 'S5');
+
+DROP SEQUENCE SEQ_EID;
+
+ROLLBACK;
+
+DELETE FROM EMPLOYEE
+WHERE EMP_ID = 225;
+
+SELECT * FROM EMPLOYEE;
