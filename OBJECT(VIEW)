@@ -1,0 +1,156 @@
+/*
+      OBJECT
+      데이터베이스를 이루는 논리적인 구조물들
+      
+      OBJECT의 종류
+      - TABLE, USER, VIEW, SEQUENCE, PACKAGE, TRIGGER, FUNCTION, PROCEDURE
+      
+      <VIEW>
+      SELECT를 저장해둘 수 있는 객체
+      (자주 사용할 SELECT문을 VIEW에 담아놓고 사용하면 매번 긴 SELECT문을 작성할 필요가 없어진다.)
+        -> 조회용 임시테이블(실제로 값이 담겨있는 것이 아님)
+        
+      1. VIEW 생성 방법
+      [표현법]
+      CREATE VIEW 뷰명 AS 서브쿼리;
+      
+      CREATE OR REPLACE VIEW 뷰명
+      AS 서브쿼리;
+      -> 뷰 생성 시 기존에 중복된 이름의 뷰가 없다면 새롭게 생성하고 중복된 이름이 있다면 해당 뷰에 덮어쓰기(갱신)한다.
+      - OR REPLACE 옵션은 생략 가능
+*/
+
+-- '한국'에서 근무하는 사원들의 사번, 이름, 부서명, 급여, 근무국가명, 직급명을 조회하시오
+CREATE VIEW VW_EMPLOYEE
+AS SELECT EMP_ID, EMP_NAME, DEPT_TITLE, SALARY, N.NATIONAL_NAME, J.JOB_NAME
+FROM EMPLOYEE E, DEPARTMENT D, NATIONAL N, JOB J, LOCATION L
+WHERE E.DEPT_CODE = D.DEPT_ID
+AND D.LOCATION_ID = L.LOCAL_CODE
+AND L.NATIONAL_CODE = N.NATIONAL_CODE
+AND E.JOB_CODE = J.JOB_CODE;
+-- VIEW 생성 권한이 없어서 오류(insufficient privileges) 발생
+
+-- VIEW 생성 권한 부여하기
+GRANT CREATE VIEW TO YJ;  -- 이 부분만 관리자 계정에서 진행한다.
+
+SELECT * FROM VW_EMPLOYEE;
+
+-- 위 코드로 한국 지사만 VW_EMPLOYEE로 조회하기
+SELECT * FROM VW_EMPLOYEE WHERE NATIONAL_NAME = '한국';
+
+-- 러시아에 근무하는 사원들의 사번과 이름, 직급명, 급여, 보너스 조회하기
+SELECT * FROM VW_EMPLOYEE;
+
+SELECT EMP_ID, EMP_NAME, JOB_NAME, SALARY, BONUS
+FROM VW_EMPLOYEE
+WHERE NATIONAL_NAME = '러시아';
+-- VW_EMPLOYEE에는 BONUS 컬럼이 존재하지 않으므로 오류가 발생한다.
+
+-- BONUS 컬럼을 추가하고 싶을 때 사용하는 방법
+-- CREATE OR REPLACE VIEW를 사용한다.
+CREATE OR REPLACE VIEW VW_EMPLOYEE
+AS SELECT EMP_ID, EMP_NAME, DEPT_TITLE, SALARY, N.NATIONAL_NAME, J.JOB_NAME, BONUS
+     FROM EMPLOYEE E, DEPARTMENT D, NATIONAL N, JOB J, LOCATION L
+     WHERE E.DEPT_CODE = D.DEPT_ID
+     AND D.LOCATION_ID = L.LOCAL_CODE
+     AND L.NATIONAL_CODE = N.NATIONAL_CODE
+     AND E.JOB_CODE = J.JOB_CODE;
+    
+SELECT * FROM VW_EMPLOYEE;
+
+-- 뷰는 논리적인 가상테이블로, 실질적으로 데이터를 저장하고 있지 않다.
+-- 단순히 쿼리문만 저장되어 있다.
+-- 참고) 해당 계정이 가지고 있는 VIEW들에 대한 내용을 조회하고자 하면 USERS_VIEWS 조회를 하면 된다.
+SELECT * FROM USER_VIEWS;
+
+/*
+       뷰 컬럼에 별칭 부여하기
+       서브쿼리 부분에 SELECT절에 함수나 산술연산식이 기술되어 있는 경우 반드시 별칭 지정해야 한다.
+*/
+
+-- 사원의 사번, 이름, 직급명, 성별, 근무연수를 조회할 수 있는 SELECT문을 VIEW로 정의하기
+CREATE VIEW VW_EMP_JOB
+AS SELECT EMP_ID
+              , EMP_NAME
+              , JOB_NAME
+              , DECODE(SUBSTR(EMP_NO, 8, 1), '1', '남자', '2', '여자') 성별
+              , EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM HIRE_DATE) 근무연수
+     FROM EMPLOYEE
+     JOIN JOB USING(JOB_CODE);
+     
+SELECT * FROM VW_EMP_JOB;
+
+-- 다른 방법으로 별칭 지어주기
+-- 주의! 모든 컬럼에 대해 별칭을 기술해야 한다.
+CREATE OR REPLACE VIEW VW_EMP_JOB(사번, 사원명, 직급명, 성별, 근무연수)
+AS SELECT EMP_ID
+              , EMP_NAME
+              , JOB_NAME
+              , DECODE(SUBSTR(EMP_NO, 8, 1), '1', '남자', '2', '여자') 성별
+              , EXTRACT(YEAR FROM SYSDATE) - EXTRACT(YEAR FROM HIRE_DATE) 근무연수
+     FROM EMPLOYEE
+     JOIN JOB USING(JOB_CODE);
+
+-- 별칭으로 지은 컬럼명으로 조회 가능하다.
+SELECT 사번, 사원명
+FROM VW_EMP_JOB
+WHERE 성별 = '여자';
+
+SELECT *
+FROM VW_EMP_JOB
+WHERE 근무연수 >= 20;
+
+-- DROP 해보기
+DROP VIEW VW_EMP_JOB;
+
+/*
+      생성된 뷰에 DML 구문을 사용하기
+      INSERT, DELETE, UPDATE
+      주의! VIEW를 통해서 조작하게 되면 실제 데이터가 담겨있던 기준 테이블에 변경사항이 적용된다.
+*/
+
+CREATE VIEW VW_JOB
+AS SELECT * FROM JOB;
+
+SELECT * FROM JOB;
+SELECT * FROM VW_JOB;
+
+-- VIEW에 INSERT하기
+INSERT INTO VW_JOB
+VALUES ('J8', '인턴');
+
+--VW_JOB 이란 뷰에서 JOB_CODE가 J8인 JOB_NAME을 '알바'로 UPDATE
+UPDATE VW_JOB
+SET JOB_NAME='알바'
+WHERE JOB_CODE='J8';
+SELECT * FROM VW_JOB;
+SELECT * FROM JOB;
+
+--VW_JOB 이라는 뷰로부터 JOB_CODE가 J8인 행을 삭제
+DELETE FROM VW_JOB
+WHERE JOB_CODE='J8';
+SELECT * FROM VW_JOB;
+SELECT * FROM JOB;
+--두 가지 DML 기준테이블에도 UPDATE와 DELETE가 실행되었다.
+
+
+
+/*
+    VIEW에 DML이 가능한 경우 : 서브쿼리를 이용해서 기존의 테이블을 별도의 처리없이 복제하고자 할 경우
+    *불가능한 경우 : 한 번이라도 처리가 들어간 구문은 DML이 불가능하다
+    1)뷰에 정의되지 않은 컬럼을 조작하려는 경우
+    2)뷰에 정의되어 있지 않은 컬럼중에 베이스테이블 상에 NOT NULL 제약조건이 지정된 경우
+    3)산술연산식 또는 함수식으로 작성되어 정의된 경우
+    4)그룹함수나 GROUP BY절이 포함된 경우
+    5)DISTINCT 구문이 포함된 경우
+    6)JOIN 을 이용해서 여러테이블을 매칭시킨 경우
+*/
+
+--2)뷰에 정의되어 있지 않은 컬럼 중에 베이스 테이블 상에 NOT NULL 제약조건이 지정된 경우
+CREATE OR REPLACE VIEW VW_JOB
+AS SELECT JOB_CODE FROM JOB;
+SELECT * FROM VW_JOB;
+SELECT * FROM JOB;
+
+--INSERT
+INSERT INTO VW_JOB VALUES('J9'); -- (NULL,'인턴') 처럼 들어가려고 했는데 NOT NULL 제약조건이 걸려있다. cannot insert NULL into
